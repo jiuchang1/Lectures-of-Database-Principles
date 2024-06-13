@@ -2356,7 +2356,7 @@ WHERE UPPER(SQL_TEXT) LIKE '%EMP%';
 
 ### 数据库实例启动与关闭
 
-![image-20240606211425556](assets\image-20240606211425556.png)
+![image-20240606211425556](assets/image-20240606211425556.png)
 
 ```sql
 shutdown normal -- 正常关闭数据库。 发布命令后拒绝所有新的连接请求，所有连接全部退出后关闭数据库和实例
