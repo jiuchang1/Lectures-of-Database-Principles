@@ -702,12 +702,11 @@ show errors
 | `DUP_VAL_ON_INDEX`| ORA-00001 | 当尝试插入重复值违反唯一性约束时触发。   |
 
 - **非预定义的系统异常**：Oracle中存在但没有预定义名称的异常，使用错误代码和`PRAGMA EXCEPTION_INIT`进行处理。
-  
 ```sql
 DECLARE
     -- 声明自定义异常
     e_custom_exception EXCEPTION;
-    -- 将错误代码与自定义异常关联
+    -- 将错误代码与自定义异常关联，当该错误代码发生时，用户定义的异常会被触发，从而允许你使用异常处理代码来处理这个特定的错误。
     PRAGMA EXCEPTION_INIT(e_custom_exception, -1403);
 BEGIN
     -- 尝试执行一个返回无数据的查询
@@ -724,7 +723,7 @@ END;
 ```
 - **用户自定义异常**：程序员定义的异常，用于处理特定业务逻辑中的错误，通过声明、引发和处理自定义异常进行管理。
   1. **声明异常**：在声明部分定义异常。
-  2. **引发异常**：在执行部分使用`RAISE`语句引发异常。
+  2. **引发异常**：在执行部分使用`RAISE`语句引发异常。`RAISE` 语句用于显式引发一个异常。异常可以是系统定义的异常，也可以是用户定义的异常。使用 `RAISE` 语句，可以在程序逻辑中遇到特定情况时引发异常，以便控制流转到异常处理部分。
   3. **处理异常**：在异常处理部分捕获和处理异常。
 ```sql
 DECLARE
@@ -882,8 +881,9 @@ END;
 
 ```sql
 BEGIN
-  DBMS_DDL.EXECUTE_DDL('CREATE TABLE employees (emp_id NUMBER, emp_name VARCHAR2(50))');
+  EXECUTE IMMEDIATE 'CREATE TABLE employees (emp_id NUMBER, emp_name VARCHAR2(50))';
 END;
+/
 ```
 
 上述代码会在当前模式下创建一个名为`employees`的新表，包含`emp_id`和`emp_name`两个列。
@@ -894,8 +894,9 @@ END;
 
 ```sql
 BEGIN
-  DBMS_DDL.EXECUTE_DDL('DROP TABLE employees');
+  EXECUTE IMMEDIATE 'DROP TABLE employees';
 END;
+/
 ```
 
 这段代码会删除名为`employees`的表。
@@ -906,8 +907,9 @@ END;
 
 ```sql
 BEGIN
-  DBMS_DDL.EXECUTE_DDL('ALTER TABLE employees ADD (emp_address VARCHAR2(100))');
+  EXECUTE IMMEDIATE('ALTER TABLE employees ADD (emp_address VARCHAR2(100))');
 END;
+/
 ```
 
 这段代码会在`employees`表中增加一个名为`emp_address`的新列。
