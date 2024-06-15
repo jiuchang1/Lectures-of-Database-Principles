@@ -8,6 +8,17 @@
 2. 执行部分（Executable Section）：包含执行的PL/SQL语句。
 3. 异常处理部分（Exception Handling Section）：处理程序中的异常或错误。
 
+> 这里`%TYPE`的意义即令左侧的变量类型与右侧的保持一致。但注意，DECLARE部分仅仅是赋予变量的类型，也就是他们都是**没有被定义的**，实际上它们包含的是 `NULL` 值。
+>
+> 在 PL/SQL 中，`SELECT INTO` 是用来将查询结果**赋值给变量**的一种方法。它不同于标准的 SQL，因为 PL/SQL 是一种过程化的扩展语言，允许你在程序中处理数据和控制流程。`SELECT INTO` 语句用于从数据库中检索一行数据，并将其直接存储到变量中。
+>
+> `UPDATE ... SET ... WHERE` 是 SQL 语法中的更新语句，用于修改表中的数据。
+>
+> - **`NO_DATA_FOUND`**：这个异常是在 `SELECT INTO` 语句没有返回任何行时触发的。在你的代码中，如果 `SELECT empno, ename, sal INTO v_empno, v_ename, v_sal FROM emp WHERE ename = 'SMITH';` 没有找到名称为 `SMITH` 的员工，这个异常就会被触发。如果我们将下面的查询中`WHERE`一句的查询改为不存在的人名，就会报错为员工未找到。
+>
+> - **`OTHERS`**：这个异常捕获所有未被前面具体捕获的其他异常。它是一个通用的异常处理程序，用于捕获所有类型的运行时错误。
+> - **`DBMS_OUTPUT.PUT_LINE('发生错误：' || SQLERRM);`**：当任何未被具体捕获的异常发生时，这条语句将会执行。`SQLERRM` 是一个内置函数，用于返回最近一次捕获的异常的错误消息。通过 `DBMS_OUTPUT.PUT_LINE`，错误消息将被输出到控制台或日志中。
+
 ```sql
 DECLARE
     -- 声明部分：在这里定义变量
@@ -96,10 +107,10 @@ BEGIN
 END;
 /
 ```
-> For-loop 语句
+> For-loop 语句，这里的循环上下界之间要用..连接，注意是**两个点**而非三个，不同于大部分程序。
 ```sql
 FOR counter IN [REVERSE]
-        lower_bound...upper bound LOOP
+        lower_bound..upper bound LOOP
     statement1;
     statement2;
     ...
@@ -154,7 +165,7 @@ END;
 
 ```sql
 -- SELECT 示例
-SELECT * FROM emp WHERE empno = 7369;
+SELECT * INTO * FROM emp WHERE empno = 7369;
 
 -- INSERT 示例
 INSERT INTO emp (empno, ename, job, sal) VALUES (1234, 'JOHN', 'MANAGER', 5000);
@@ -205,6 +216,13 @@ END;
   + 存储在数据库中，可以被多个用户和应用程序共享。
   + 可以接受输入参数和输出参数，但不返回值。
   + 常用于封装业务逻辑、数据验证和批量操作。
+
+> **无需先删除再创建**：如果存储过程或存储函数已经存在，你不需要先执行 `DROP` 语句来删除旧的版本，然后再执行 `CREATE` 语句来创建新的版本。`CREATE OR REPLACE` 会自动替换已有的对象。
+>
+> 在 PL/SQL 中，`AS` 关键字用于定义存储过程或存储函数的主体，并且是必须的。**它用于引入过程或函数的实现部分**。你可以将 `AS` 视为过程或函数声明部分和实现部分之间的分隔符。
+
+**减少错误**：使用 `DROP` 语句可能会导致误删除其他相关对象，而 `CREATE OR REPLACE` 则避免了这种风险。
+
 ```sql
 CREATE OR REPLACE PROCEDURE update_salary (
     p_empno IN emp.empno%TYPE,
@@ -222,11 +240,30 @@ END;
   + 存储在数据库中，可以被多个用户和应用程序共享。
   + 需要返回一个值。
   + 常用于计算和数据转换。
+
+> 在 PL/SQL 中，存储过程或存储函数的变量声明是放在 `AS` 或 `IS` 关键字后面的，这些声明等价于在匿名块中的 `DECLARE` 部分进行的声明。无论是存储过程、存储函数还是匿名块，变量声明的语法和作用都是一致的。
+
 ```sql
 CREATE OR REPLACE FUNCTION get_employee_salary (
     p_empno IN emp.empno%TYPE
 ) RETURN NUMBER
 AS
+    v_sal emp.sal%TYPE;
+BEGIN
+    SELECT sal
+    INTO v_sal
+    FROM emp
+    WHERE empno = p_empno;
+    
+    RETURN v_sal;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN NULL;
+    WHEN OTHERS THEN
+        -- 可以根据需要处理其他异常
+        RETURN NULL;
+END;
+/
 ```
 调用存储函数
 ```sql
@@ -276,6 +313,7 @@ EXEC increase_salary(7369, 10); -- 将员工编号为7369的工资增加10%
 ```
 
 **在PL/SQL块中调用存储过程**
+
 ```sql
 BEGIN
     increase_salary(7369, 10); -- 将员工编号为7369的工资增加10%
@@ -331,6 +369,8 @@ SELECT get_salary(7369) AS salary FROM dual;
 + Mysql中类似的函数是group_concat
 + 输出是clob类型
 
+> 在 Oracle 19c 中，`WM_CONCAT` 已经被弃用，并且不再可用。取而代之的是标准 SQL 中的 `LISTAGG` 函数，它提供了更强大和灵活的字符串聚合功能。
+
 #### 示例
 ```sql
 -- 使用WM_CONCAT函数按部门将员工名字连接成一个字符串
@@ -340,6 +380,9 @@ GROUP BY deptno;
 ```
 
 ### listagg 函数
+
+> 这样就可以在聚类后查看所有人的名字，而非需要多行才能查看
+
 ```sql
 -- 使用LISTAGG函数按部门将员工名字连接成一个字符串
 SELECT deptno, LISTAGG(ename, ',') WITHIN GROUP (ORDER BY ename) AS employees
@@ -472,6 +515,30 @@ END;
 ```
 
 在这个示例中，使用 `%ROWTYPE` 简化了游标循环中的数据处理，使代码更加简洁和易于维护。
+
+### 游标的类型
+
+**基本游标**
+
+```sql
+CURSOR emp_cursor IS
+    SELECT * FROM emp;
+```
+
+**参数化游标 **
+
+参数化游标允许在定义游标时传递参数，以便在查询中使用这些参数。这使得游标更加灵活和可重用。
+
+```sql
+CURSOR emp_cursor (p_deptno NUMBER) IS
+    SELECT * FROM emp WHERE deptno = p_deptno;
+```
+
+而利用游标提取的代码为`fetch ... into ...`
+
+```sql
+FETCH emp_cursor INTO v_emp_row;
+```
 
 ### Record 类型
 
@@ -2749,6 +2816,12 @@ alter database mount;
 ---
 
 ## Week 17
+
+
+
+
+
+
 
 
 
