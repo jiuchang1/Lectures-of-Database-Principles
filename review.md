@@ -65,7 +65,10 @@ END;
 set serveroutput on
 ```
 
+看来它大部分类型都支持。
+
 ### 基本语法
+
 > IF 语句
 ```sql
 IF condition THEN
@@ -110,7 +113,7 @@ END;
 > For-loop 语句，这里的循环上下界之间要用..连接，注意是**两个点**而非三个，不同于大部分程序。
 ```sql
 FOR counter IN [REVERSE]
-        lower_bound..upper bound LOOP
+        lower_bound..upper_bound LOOP
     statement1;
     statement2;
     ...
@@ -128,11 +131,12 @@ END;
 ```
 
 **在PL/SQL中使用SQL**
+
 1. 可直接使用 **DML** 语句
 2. select ... into ...
 3. 不能使用 **DDL** 语句
 
-以下是DML（数据操作语言）和DDL（数据定义语言）语句的列表：
+尽管不能直接使用 DDL 语句（如 CREATE、ALTER、DROP 等），但可以通过动态 SQL 进行执行。使用 `EXECUTE IMMEDIATE` 可以在 PL/SQL 中执行 DDL 语句。以下是DML（数据操作语言）和DDL（数据定义语言）语句的列表：
 
 #### DML 语句
 
@@ -227,7 +231,14 @@ END;
 CREATE OR REPLACE PROCEDURE update_salary (
     p_empno IN emp.empno%TYPE,
     p_percentage IN NUMBER
-) AS
+) IS
+BEGIN
+    UPDATE emp
+    SET sal = sal + (sal * p_percentage / 100)
+    WHERE empno = p_empno;
+    COMMIT;  
+END;
+/
 ```
 调用存储过程
 ```sql
@@ -254,6 +265,7 @@ BEGIN
     INTO v_sal
     FROM emp
     WHERE empno = p_empno;
+    -- 这里 INTO 即为赋值
     
     RETURN v_sal;
 EXCEPTION
@@ -281,8 +293,17 @@ END;
 + 可以受到数据库权限机制保护
 
 #### 怎样调用存储过程和存储函数
-+ 在sqlplus中使用存储过程，打入“exec <过程名>”
-+ 在程序中使用存储过程，直接使用<过程名>即可
++ 在sqlplus中使用**存储过程**，打入“exec <过程名>”，注意，存储函数不能直接exec，但是可以用select中直接调用
+
+```sql
+SQL> SELECT get_employee_salary(7369) FROM dual;
+
+GET_EMPLOYEE_SALARY(7369)
+-------------------------
+                  1344.31
+```
+
++ 在程序中使用**存储过程**，直接使用<过程名>即可
 + 使用存储函数与使用标准SQL函数没有区别
 
 ### 存储过程示例
@@ -304,12 +325,14 @@ END;
 #### 调用存储过程
 
 **在SQL*Plus中使用存储过程**
+
 ```sql
 -- 启用服务器输出以便查看结果
 SET SERVEROUTPUT ON;
 
 -- 使用 EXEC 调用存储过程
-EXEC increase_salary(7369, 10); -- 将员工编号为7369的工资增加10%
+EXEC increase_salary(7369, 10); 
+-- 将员工编号为7369的工资增加10%
 ```
 
 **在PL/SQL块中调用存储过程**
