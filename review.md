@@ -363,7 +363,108 @@ END;
 SELECT get_salary(7369) AS salary FROM dual;
 ```
 
+### 包和包体
+
+在Oracle数据库中，包（Package）是一个逻辑分组，用于包含相关的PL/SQL类型、变量、过程、函数和游标。包由包规范（Package Specification）和包体（Package Body）组成。
+
+#### 包规范（Package Specification）
+包规范是包的接口，声明包中包含的所有公共元素（如过程和函数的定义）。包规范不包含实现细节，只提供调用信息。
+
+#### 包体（Package Body）
+包体包含包中所有过程和函数的具体实现。包体可以包含包规范中声明的公共元素的实现以及一些私有元素，这些私有元素只在包体内可见。
+
+#### 创建包和包体的步骤
+1. **创建包规范**
+```sql
+CREATE OR REPLACE PACKAGE package_name IS
+  -- 公共过程和函数的声明
+  PROCEDURE procedure_name(param1 datatype, param2 datatype);
+  FUNCTION function_name(param1 datatype, param2 datatype) RETURN datatype;
+END package_name;
+```
+
+2. **创建包体**
+```sql
+CREATE OR REPLACE PACKAGE BODY package_name IS
+  -- 公共过程和函数的实现
+  PROCEDURE procedure_name(param1 datatype, param2 datatype) IS
+  BEGIN
+    -- 过程体
+  END procedure_name;
+
+  FUNCTION function_name(param1 datatype, param2 datatype) RETURN datatype IS
+  BEGIN
+    -- 函数体
+  END function_name;
+END package_name;
+```
+
+#### 调用包中的过程和函数
+一旦包和包体创建完毕，可以通过以下方式调用包中的过程和函数：
+
+```sql
+-- 调用包中的过程
+BEGIN
+  package_name.procedure_name(param1_value, param2_value);
+END;
+```
+
+```sql
+-- 调用包中的函数
+DECLARE
+  result datatype;
+BEGIN
+  result := package_name.function_name(param1_value, param2_value);
+  DBMS_OUTPUT.PUT_LINE(result);
+END;
+```
+
+#### 示例
+以下是一个创建和调用包及包体的完整示例：
+
+1. **创建包规范**
+```sql
+CREATE OR REPLACE PACKAGE example_pkg IS
+  PROCEDURE say_hello(name VARCHAR2);
+  FUNCTION add_numbers(a NUMBER, b NUMBER) RETURN NUMBER;
+END example_pkg;
+```
+
+2. **创建包体**
+```sql
+CREATE OR REPLACE PACKAGE BODY example_pkg IS
+  PROCEDURE say_hello(name VARCHAR2) IS
+  BEGIN
+    DBMS_OUTPUT.PUT_LINE('Hello, ' || name || '!');
+  END say_hello;
+
+  FUNCTION add_numbers(a NUMBER, b NUMBER) RETURN NUMBER IS
+  BEGIN
+    RETURN a + b;
+  END add_numbers;
+END example_pkg;
+```
+
+3. **调用包中的过程和函数**
+```sql
+-- 调用say_hello过程
+BEGIN
+  example_pkg.say_hello('Alice');
+END;
+/
+
+-- 调用add_numbers函数
+DECLARE
+  result NUMBER;
+BEGIN
+  result := example_pkg.add_numbers(10, 20);
+  DBMS_OUTPUT.PUT_LINE('Sum: ' || result);
+END;
+/
+```
+
 ### wm_concat 函数
+
 + Oracle的内测函数
 + 另一种方式的列转行
 + Mysql中类似的函数是group_concat
