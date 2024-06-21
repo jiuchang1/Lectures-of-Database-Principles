@@ -638,7 +638,7 @@ END;
 /
 ```
 
-在这个示例中，使用 `%ROWTYPE` 简化了游标循环中的数据处理，使代码更加简洁和易于维护。
+在这个示例中，使用 `%ROWTYPE` 简化了游标循环中的数据处理，使代码更加简洁和易于维护。`emp_cursor%NOTFOUND` 属性在没有更多行可以提取时变为 `TRUE`，此时 `EXIT WHEN emp_cursor%NOTFOUND;` 语句将退出循环。
 
 ### 游标的类型
 
@@ -809,8 +809,13 @@ END;
 show errors
 ```
 
-
 ### 例外处理
+
+| 系统预定义异常         | 名称可直接翻译          |
+| ---------------------- | ----------------------- |
+| **非预定义的系统异常** | `PRAGMA EXCEPTION_INIT` |
+| **用户自定义异常**     | `RAISE`                 |
+
 - **系统预定义异常**：Oracle预先定义的标准异常，直接使用异常名称进行处理。
 
 系统预定义异常是Oracle预先定义的标准异常。这些异常与常见的错误条件相关联，并且有具体的名称。可以直接在异常处理部分使用这些异常名称进行处理。
@@ -874,6 +879,8 @@ END;
 ```
 
 ### 触发器
+
+**before先于after**，**按顺序执行**
 
 1. ### 触发器
 
@@ -1134,7 +1141,7 @@ end;
 
 在Oracle数据库中，“块”（Block）是数据库存储的基本单位。
 
-- **Oracle数据块（Oracle Block）**: 也称为数据块或数据页，是Oracle数据库中最小的数据存储单位。一个Oracle数据块对应数据库文件中的一个物理块。每个Oracle块包含若干行数据。
+- **Oracle数据块（Oracle Block）**: 也称为数据块或数据页，是**Oracle数据库中最小的数据存储单位**。一个Oracle数据块对应数据库文件中的一个物理块。每个Oracle块包含若干行数据。
 - **大小**: Oracle数据块的大小可以在创建数据库时进行设置，常见的大小为2KB、4KB、8KB、16KB或32KB。操作系统读写硬盘的最小单元是**OS block.**（操作系统块）
   - **关系**: 一个Oracle数据块通常由多个操作系统块组成。例如，如果Oracle数据块的大小为8KB，而操作系统块的大小为4KB，那么一个Oracle数据块将由两个操作系统块组成。
   - **大小**: 操作系统块的大小通常由操作系统设置，常见的大小为512字节、1KB、2KB、4KB等。
@@ -1258,18 +1265,18 @@ AUTOEXTEND ON NEXT 10M MAXSIZE 500M;
 
 ### 表空间分配策略：范围 (extent)
 
-在Oracle数据库中，范围分配策略（Extent Allocation）是指管理数据存储空间的一种方法。一个范围是Oracle数据库中用于存储数据的连续块（blocks）的集合。范围是表空间内分配给数据库对象（如表或索引）的存储基本单元。每当一个数据库对象需要更多的存储空间时，Oracle会分配一个或多个新的范围给该对象。范围会预占空间，当之前被分配的范围被写满之后系统会继续分配新的范围。
+在Oracle数据库中，**范围分配策略**（Extent Allocation）是指管理数据存储空间的一种方法。一个范围是Oracle数据库中用于存储数据的连续块（blocks）的集合。范围是**表空间内分配给数据库对象（如表或索引）的存储基本单元**。每当一个数据库对象需要更多的存储空间时，Oracle会分配**一个或多个新的范围**给该对象。范围会**预占空间**，当之前被分配的范围被写满之后系统会继续分配新的范围。
 
 #### 范围分配策略
 
 范围分配策略决定了数据库对象如何在表空间中获得存储空间。主要有两种范围分配策略：
 
-1. **统一管理表空间（Locally Managed Tablespace, LMT）**:
-   - **自动管理范围**: Oracle自动管理范围的分配和回收。数据库管理员只需创建表空间并指定初始范围大小，之后的范围分配由Oracle自动完成。
+1. **本地（统一）管理表空间（Locally Managed Tablespace, LMT）**:
+   - **自动管理范围**: Oracle**自动管理范围的分配和回收**。数据库管理员只需创建表空间并指定初始范围大小，之后的范围分配由Oracle自动完成。
    - **手工管理范围**: 数据库管理员可以指定特定的范围大小和分配策略。这种方式提供了更细粒度的控制，但需要更多的管理工作。
 
 2. **字典管理表空间（Dictionary Managed Tablespace, DMT）**:
-   - 在这种策略中，范围信息存储在数据字典表中。每次范围分配和回收都需要更新数据字典表，因此性能相对较低。
+   - 在这种策略中，**范围信息存储在数据字典表中**。每次范围分配和回收都需要更新数据字典表，因此性能相对较低。
    - 这种方式已经逐渐被统一管理表空间所取代，因为统一管理表空间具有更好的性能和更低的管理开销。
 
 #### 范围分配示例
@@ -1304,19 +1311,33 @@ AUTOEXTEND ON NEXT 10M MAXSIZE UNLIMITED;
 
   ```sql
   SELECT tablespace_name, extent_management, allocation_type 
-  FROM dba_tablespaces;
+  FROM dba_tablespaces WHERE ROWNUM <= 10;
   ```
+
+
+```sql
+TABLESPACE_NAME                EXTENT_MAN ALLOCATIO
+------------------------------ ---------- ---------
+SYSTEM                         LOCAL      SYSTEM
+SYSAUX                         LOCAL      SYSTEM
+UNDOTBS1                       LOCAL      SYSTEM
+TEMP                           LOCAL      UNIFORM
+USERS                          LOCAL      SYSTEM
+MYSPACE                        LOCAL      SYSTEM
+
+已选择 6 行。
+```
 
 - **查看范围信息**:
 
   ```sql
   SELECT segment_name, segment_type, tablespace_name, extent_id, bytes 
-  FROM dba_extents;
+  FROM dba_extents WHERE ROWNUM <= 10;
   ```
 
-### 存储参数
+### 存储参数 (storage)
 
-在Oracle数据库中，存储参数（Storage Parameters）用于定义数据库对象（如表、索引等）如何在表空间中分配和管理存储空间。这些参数在创建或修改数据库对象时指定，影响对象的性能和空间利用率。
+在Oracle数据库中，存储参数（Storage Parameters）用于定义数据库对象（如表、索引等）如何在**表空间中分配和管理存储空间**。这些参数在创建或修改数据库对象时指定，影响对象的性能和空间利用率。
 
 #### 主要存储参数
 
@@ -1412,7 +1433,7 @@ Oracle中主要有以下几种类型的段：
 
 #### 段的管理
 
-段由多个范围组成，每个范围包含若干数据块。Oracle数据库通过段来管理和分配存储空间。以下是段管理的一些主要操作：
+段由多个范围组成，每个范围**包含若干数据块**。Oracle数据库通过段来管理和分配存储空间。以下是段管理的一些主要操作：
 
 1. **创建段**:
    当创建一个表或索引时，Oracle会自动分配一个相应的段。
@@ -1461,8 +1482,8 @@ CREATE TABLE employees (
 
 ### 段的高水位
 
-- **定义**: 高水位标记是一个逻辑标记，表示段中已使用空间的最高位置。任何高于这个标记的数据块都未被使用。
-- **作用**: 高水位标记用于决定段中哪些块包含数据，哪些块是空闲的。在进行全表扫描（Full Table Scan）时，Oracle会扫描到高水位标记为止。
+- **定义**: 高水位标记是一个逻辑标记，表示**段中已使用空间的最高位置**。**任何高于这个标记的数据块都未被使用**。
+- **作用**: 高水位标记用于决定**段中哪些块包含数据，哪些块是空闲的**。在进行全表扫描（Full Table Scan）时，Oracle会**扫描到高水位标记为止**。
 
 #### 高水位标记的影响
 
@@ -1511,9 +1532,117 @@ TRUNCATE TABLE employees;
 2. **空间优化**:
    - 使用表分区、表重组等技术优化空间利用，降低高水位标记对性能的影响。
 
+### 缺省表空间
+
+在Oracle数据库中，管理用户的缺省表空间、临时表空间，以及在各个表空间上的限额可以通过以下步骤实现。同时，可以在指定的表空间上创建数据库对象。
+
+#### 1. 指定用户的缺省表空间和临时表空间
+
+创建用户时，可以指定其缺省表空间和临时表空间。也可以使用 `ALTER USER` 语句更改现有用户的缺省表空间和临时表空间。
+
+##### 创建用户并指定表空间
+
+```sql
+CREATE USER username IDENTIFIED BY password
+DEFAULT TABLESPACE default_tablespace
+TEMPORARY TABLESPACE temp_tablespace;
+```
+
+##### 更改现有用户的表空间
+
+```sql
+ALTER USER username 
+DEFAULT TABLESPACE new_default_tablespace
+TEMPORARY TABLESPACE new_temp_tablespace;
+```
+
+#### 2. 在各个表空间上的限额
+
+可以使用 `CREATE USER` 或 `ALTER USER` 语句为用户设置在表空间上的限额。
+
+##### 设置限额
+
+在创建用户时设置限额：
+
+```sql
+CREATE USER username IDENTIFIED BY password
+DEFAULT TABLESPACE default_tablespace
+TEMPORARY TABLESPACE temp_tablespace
+QUOTA 100M ON tablespace_name;
+```
+
+使用 `ALTER USER` 更改用户限额：
+
+```sql
+ALTER USER username 
+QUOTA 500M ON tablespace_name;
+```
+
+#### 3. 把数据库对象建立在指定的表空间上
+
+在创建数据库对象（如表、索引等）时，可以指定表空间。这样对象会被存储在指定的表空间中。
+
+##### 创建表在指定表空间
+
+```sql
+CREATE TABLE table_name (
+    column1 datatype,
+    column2 datatype,
+    ...
+) TABLESPACE tablespace_name;
+```
+
+##### 创建索引在指定表空间
+
+```sql
+CREATE INDEX index_name ON table_name(column_name)
+TABLESPACE tablespace_name;
+```
+
+假设有一个表空间 `userspace`，我们创建一个新用户，并将其缺省表空间和临时表空间设置为 `userspace` 和 `temp`，并设置限额，然后在指定表空间上创建表和索引。
+
+```sql
+-- 创建表空间
+CREATE TABLESPACE userspace DATAFILE 'userspace01.dbf' SIZE 50M;
+
+-- 创建临时表空间
+CREATE TEMPORARY TABLESPACE temp TEMPFILE 'temp01.dbf' SIZE 50M;
+
+-- 创建用户并指定表空间和限额
+CREATE USER user1 IDENTIFIED BY password1
+DEFAULT TABLESPACE userspace
+TEMPORARY TABLESPACE temp
+QUOTA 20M ON userspace;
+
+-- 更改用户限额
+ALTER USER user1 QUOTA 50M ON userspace;
+
+-- 授予用户必要的权限
+GRANT CONNECT, RESOURCE TO user1;
+
+-- 使用该用户创建表在指定表空间上
+CREATE TABLE user1.example_table (
+    id NUMBER PRIMARY KEY,
+    name VARCHAR2(100)
+) TABLESPACE userspace;
+
+-- 在指定表空间上创建索引
+CREATE INDEX user1.idx_example ON user1.example_table(name)
+TABLESPACE userspace;
+```
+
 ---
 
 ## Week 14
+
+### 类型编码
+
+| 数据类型 | 编码方式                                                     | 说明                                                         |
+| -------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| NUMBER   | 基于十进制的压缩格式。正数和负数以不同的前缀表示，数字部分使用BCD编码。 | 示例：`SELECT DUMP(1234) FROM dual;` 输出 `Typ=2 Len=3: 194,13,35` |
+| CHAR     | 使用数据库字符集的编码方式，固定长度，如果存储的字符长度小于定义的长度，会用空格填充。 | 示例：`DUMP('A')` 输出 `Typ=96 Len=1: 65`                    |
+| VARCHAR2 | 使用数据库字符集的编码方式，变长，存储长度等于实际字符数。   | 同上                                                         |
+| DATE     | 固定七字节格式，每个字节表示日期和时间的一个部分（世纪、年、月、日、小时、分钟、秒）。 | 示例：`DUMP(DATE '2023-06-21')` 输出 `Typ=12 Len=7: 120,123,6,21,1,1,1` |
 
 ### Rowid
 
@@ -1569,8 +1698,8 @@ SELECT * FROM emp WHERE ename = 'SMITH';
 
 #### Rowid使用slot而不是offset的原因：
 
-- 数据块重整会导致记录实际存储位置变化，使用offset会增加索引维护复杂性。
-- 使用slot保持稳定，即使发生块重整，slot编号也不会改变，从而避免频繁更新索引。
+- **数据块重整会导致记录实际存储位置变化，使用offset会增加索引维护复杂性**。
+- **使用slot保持稳定，即使发生块重整，slot编号也不会改变，从而避免频繁更新索引**
 
 1. 查询`object_id`的相关信息
 
@@ -1679,13 +1808,13 @@ WHERE segment_name = 'EMP'
 
 #### 行链（Row Chaining）
 
-- **定义**：行链发生在一行数据太长而一个数据块放不下时，需要多个数据块来存储这行数据。
-- **常见场景**：通常发生在包含大文本字段或BLOB/CLOB数据类型的表中。
+- **定义**：行链发生在一行数据太长而一个数据块放不下时，**需要多个数据块来存储这行数据**。
+- **常见场景**：通常发生在包含**大文本字段**或**BLOB/CLOB**数据类型的表中。
 
 #### 行迁移（Row Migration）
 
-- **定义**：行迁移常见于变长数据类型。当一行数据从较短的行更新为较长的行，原先的数据块放不下这行数据时，数据库会将这行数据迁移到另一个数据块。在原先的数据块中保留一个指向新数据块的迁移指针。
-- **影响**：行迁移会导致查询效率降低，因为读取这行数据需要额外的一次I/O操作（首先读取原数据块，然后读取迁移后的数据块）。
+- **定义**：行迁移常见于**变长数据类型**。当一行数据从较短的行更新为较长的行，原先的数据块放不下这行数据时，数据库会将**这行数据迁移到另一个数据块。在原先的数据块中保留一个指向新数据块的迁移指针**。
+- **影响**：行迁移会导致**查询效率降低**，因为读取这行数据需要额外的一次I/O操作（首先读取原数据块，然后读取迁移后的数据块）。
 
 ```sql
 SQL> analyze table emp compute statistics;
@@ -1703,23 +1832,23 @@ SQL> select num_rows,chain_cnt from dba_tables where table_name = 'EMP';
 
 #### 1. 概念解释
 
-**PCTUSED** 和 **PCTFREE** 是Oracle数据库中表和索引段的存储参数，主要用于管理数据块的使用策略。它们的设置影响数据块何时可以重新用于插入操作，进而影响数据库的性能和存储效率。
+**PCTUSED** 和 **PCTFREE** 是Oracle数据库中表和索引段的存储参数，主要用于管理数据块的使用策略。它们的设置影响**数据块何时可以重新用于插入操作**，进而影响数据库的性能和存储效率。
 
 #### 2. Freelist
 
-- **Freelist** 是一种放在段头的数据结构，用于记录段中哪些数据块可以用于插入操作。
+- **Freelist** 是一种放在段头的数据结构，用于记录段中**哪些数据块可以用于插入操作**。
 - Freelist帮助Oracle数据库管理可用空间，确保插入操作高效。
 - 可以配置多个freelist以防止并发操作中的竞争冲突。多个freelist允许多个进程同时插入数据而不会发生争用，提高插入性能。
 
 #### 3. PCTUSED
 
 - **PCTUSED** (Percentage Used) 指定数据块在被重新用于插入操作之前必须保持的最小使用百分比。
-- 当一个数据块的使用空间低于PCTUSED值时，该块会被重新添加到freelist中，表明它可以再次用于插入新的行。
+- **当一个数据块的使用空间低于PCTUSED值时，该块会被重新添加到freelist中，表明它可以再次用于插入新的行**。
 
 #### 4. PCTFREE
 
-- **PCTFREE** (Percentage Free) 指定在一个数据块中插入新行时，预留给将来更新操作的最小百分比。
-- 当插入新行时，PCTFREE的值决定了数据块中必须保留的最小空闲空间，以确保将来的更新操作不会导致行迁移。
+- **PCTFREE** (Percentage Free) 指定**在一个数据块中插入新行时，预留给将来更新操作的最小百分比**。
+- 当插入新行时，PCTFREE的值决定了数据块中**必须保留的最小空闲空间**，以确保将来的更新操作不会导致行迁移。
 
 #### 5. 示例图解
 
@@ -1816,11 +1945,11 @@ DELETE FROM emp WHERE empno = 7499;
 - **offset的频繁变化**：由于块内数据的这种频繁变化，行的物理位置（offset）也会经常变化。如果索引中使用offset，将导致索引条目需要频繁更新，增加维护成本。
 - **slot的稳定性**：相比之下，slot是数据块中每行的逻辑位置编号，在块的重组过程中相对稳定，不会频繁改变。因此，索引使用slot作为rowid的一部分，可以减少索引的更新频率，降低维护开销。
 
-### SQL的解析实现：执行计划  
+### SQL的解析实现：Oracle的执行计划  
 
 #### Autotrace 功能
 
-**AUTOTRACE** 是SQL*Plus中的一个工具，用于显示SQL语句的执行计划和统计信息。它可以帮助开发人员和DBA优化SQL查询性能。
+**AUTOTRACE** 是SQLPlus中的一个工具，用于显示SQL语句的执行计划和统计信息。它可以帮助开发人员和DBA优化SQL查询性能。
 
 #### 1. 运行 `utlxplan.sql` 生成 plan 表
 
@@ -1929,6 +2058,20 @@ Predicate Information (identified by operation id):
 
 ```
 
+#### 非最优的执行计划原因
+
+| 原因                   | 说明                                                         |
+| ---------------------- | ------------------------------------------------------------ |
+| 统计信息不准确或过时   | 优化器依赖统计信息来选择最优的执行计划，不准确或过时的信息会导致次优计划 |
+| 数据分布不均           | 数据分布高度偏斜，优化器可能无法正确估计选择性和代价         |
+| 复杂查询和优化时间限制 | 优化器在有限时间内可能无法找到最优的计划，选择次优的计划     |
+| 参数设置不当           | 初始化参数和会话参数影响优化器行为，设置不当会导致次优计划   |
+| 绑定变量的使用         | 绑定变量的通用性会导致优化器无法准确估计选择性               |
+| 计划缓存和重用         | 旧的执行计划可能不再适用，但仍被重用                         |
+| 优化器的限制和缺陷     | 优化器的内部算法和启发式方法可能会导致选择次优的执行计划     |
+
+
+
 #### Analyze语句    
 
 - 作用：分析表数据分布的统计数据，写入数据字典
@@ -1974,8 +2117,8 @@ Predicate Information (identified by operation id):
 ### 位图索引
 
 - Create bitmap index …  
-- 适合重复值比较多的列
-- 特别擅长条件为逻辑组合的情况
+- 适合**重复值比较多的列**
+- 特别擅长**条件为逻辑组合**的情况
 - 维护成本高
 - Oracle的位图索引是向另一家专门研究索引算法的公司花了**20多亿美金购买**
 
@@ -2000,7 +2143,7 @@ WHERE job = 'CLERK'
 AND deptno = 10;
 ```
 
-如果在`job`和`deptno`列上都创建了位图索引，数据库可以通过快速的位运算来检索符合条件的记录：
+如果在`job`和`deptno`列上都**创建了位图索引，数据库可以通过快速的位运算来检索符合条件的记录：**
 
 ```sql
 CREATE BITMAP INDEX emp_dept_idx
@@ -2140,7 +2283,13 @@ WHERE (sal + comm) > 3000;
 ### <span style="color: red;">算法</span>
 
 - 排序算法，和其它能归结为排序的算法，例如聚组算法，消除重复的算法，集合运算（例如求并） 
-- 连接算法：循环嵌套法（Nested Loop），哈希连接法（Hash Join），排序归并法（Sort Merge）  
+- 连接算法：循环嵌套法（Nested Loop），哈希连接法（Hash Join），排序归并法（Sort Merge） 
+
+| 连接算法                      | 原理                                             | 优点                                         | 缺点                             | Oracle 中的体现（hints）          |
+| ----------------------------- | ------------------------------------------------ | -------------------------------------------- | -------------------------------- | --------------------------------- |
+| 循环嵌套法（Nested Loop）     | 遍历外部表的每一行，对内部表进行全表扫描。       | 实现简单，适用于小表与大表的连接。           | **内部表较大时性能较差**。       | `/*+ USE_NL(table1 table2) */`    |
+| 哈希连接法（Hash Join）       | 对一个表构建哈希表，然后对另一个表进行哈希匹配。 | 适用于大表之间的连接，处理大数据集时性能好。 | 需要**足够的内存**来存储哈希表。 | `/*+ USE_HASH(table1 table2) */`  |
+| 排序归并法（Sort Merge Join） | 对两个输入表进行排序，然后通过合并操作实现连接。 | 适用于已排序的表，处理范围较小时性能好。     | 排序阶段**开销较大**。           | `/*+ USE_MERGE(table1 table2) */` |
 
 在 Oracle 数据库中，有多种算法用于处理各种操作，如排序、连接、聚合、去重等。以下是对这些算法的详细介绍：
 
@@ -2172,7 +2321,7 @@ Oracle 使用的主要排序算法包括快速排序（Quick Sort）和归并排
    - 使用哈希表来进行聚组。
    - 对于内存足够大的情况，哈希聚组比排序聚组更高效。
 
-##### 消除重复的算法
+##### 消除重复的算法 (Sort unique & Hash unique)
 
 用于 DISTINCT 操作，主要包括：
 
@@ -2231,10 +2380,6 @@ Sort Merge Join 适用于两个都已经排序的表的连接。基本思想是�
    - 将排序后的表合并，匹配对应的记录。
 
 排序归并连接在处理已经排序的数据集时非常高效，但需要额外的排序开销。
-
-好的，让我们通过 Oracle 中的 `emp` 表来展示排序算法、聚组算法、消除重复的算法、集合运算以及连接算法的使用。
-
-### 例子
 
 #### 排序算法
 
@@ -2398,7 +2543,7 @@ EXEC DBMS_STATS.GATHER_TABLE_STATS('SCHEMA_NAME', 'EMP');
 
 #### 通过 hints 强行指定执行计划
 
-在 Oracle 中，可以使用 Hints 强制指定优化器选择特定的执行计划：
+在 Oracle 中，可以使用 Hints **强制指定优化器选择特定的执行计划**：
 
 ```sql
 SELECT /*+ INDEX(emp idx_emp_deptno) */ * FROM emp WHERE deptno = 10;
@@ -2415,7 +2560,11 @@ Oracle 数据库的总体架构主要由以下几个部分组成：
 
 #### 1. 实例（Instance）
 
-实例由**内存结构**和**后台进程**组成，负责管理数据库的操作。实例启动时会分配 SGA 并启动必要的后台进程。
+实例由**内存结构**和**后台进程**组成，负责管理数据库的操作。实例启动时会分配 SGA 并启动必要的后台进程。即2,3部分。
+
+```sql
+select * from V$INSTANCE;
+```
 
 #### 2. 系统全局区（System Global Area，SGA）<span style="color: red;">Memory Structures</span>
 
