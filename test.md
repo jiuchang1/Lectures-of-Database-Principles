@@ -182,8 +182,6 @@
     - a) 使用CREATE DATABASE命令
     - b) 使用ALTER DATABASE命令
     - c) 使用CREATE INSTANCE命令
-
-
     - d) 使用INITIATE DATABASE命令
 
 30. 在Oracle数据库中，SHUTDOWN IMMEDIATE命令的作用是什么？

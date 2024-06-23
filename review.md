@@ -65,8 +65,6 @@ END;
 set serveroutput on
 ```
 
-看来它大部分类型都支持。
-
 ### 基本语法
 
 > IF 语句
@@ -138,7 +136,7 @@ END;
 
 尽管不能直接使用 DDL 语句（如 CREATE、ALTER、DROP 等），但可以通过动态 SQL 进行执行。使用 `EXECUTE IMMEDIATE` 可以在 PL/SQL 中执行 DDL 语句。以下是DML（数据操作语言）和DDL（数据定义语言）语句的列表：
 
-#### DML 语句
+#### DML 语句 Data Manipulation Language
 
 | 语句       | 描述                                          |
 |------------|-----------------------------------------------|
@@ -151,19 +149,19 @@ END;
 | `LOCK TABLE` | 锁定数据库表以控制并发访问                |
 | `EXPLAIN PLAN` | 显示SQL语句的执行计划                    |
 
-#### DDL 语句
+#### DDL 语句 Data Definition Language
 
-| 语句       | 描述                                          |
-|------------|-----------------------------------------------|
-| `CREATE`   | 创建数据库对象（如表、视图、索引、序列等）   |
-| `ALTER`    | 修改现有的数据库对象                          |
-| `DROP`     | 删除数据库对象                                |
-| `TRUNCATE` | 清空表中的所有数据，但保留表结构              |
-| `COMMENT`  | 添加或修改数据库对象的注释                    |
-| `RENAME`   | 重命名数据库对象                              |
-| `GRANT`    | 授予用户权限                                  |
-| `REVOKE`   | 撤销用户权限                                  |
-| `ANALYZE`  | 收集有关数据库对象的统计信息                  |
+| 语句       | 描述                                                         |
+| ---------- | ------------------------------------------------------------ |
+| `CREATE`   | 创建数据库对象（如表、视图、索引、序列等）                   |
+| `ALTER`    | 修改现有的数据库对象                                         |
+| `DROP`     | 删除数据库对象                                               |
+| `TRUNCATE` | 清空表中的所有数据，**但保留表结构。**直接释放表所占用的数据页 |
+| `COMMENT`  | 添加或修改数据库对象的注释                                   |
+| `RENAME`   | 重命名数据库对象                                             |
+| `GRANT`    | 授予用户权限                                                 |
+| `REVOKE`   | 撤销用户权限                                                 |
+| `ANALYZE`  | 收集有关数据库对象的统计信息                                 |
 
 #### DML 示例
 
@@ -218,8 +216,8 @@ END;
 ```
 #### 存储过程 `作为数据库对象保存在数据库中的代码，通过参数进行输入输出数据交换`
   + 存储在数据库中，可以被多个用户和应用程序共享。
-  + 可以接受输入参数和输出参数，但不返回值。
-  + 常用于封装业务逻辑、数据验证和批量操作。
+  + 可以接受输入参数和输出参数，**但不返回值**。
+  + 常用于**封装业务逻辑、数据验证和批量操作**。
 
 > **无需先删除再创建**：如果存储过程或存储函数已经存在，你不需要先执行 `DROP` 语句来删除旧的版本，然后再执行 `CREATE` 语句来创建新的版本。`CREATE OR REPLACE` 会自动替换已有的对象。
 >
@@ -257,8 +255,7 @@ END;
 ```sql
 CREATE OR REPLACE FUNCTION get_employee_salary (
     p_empno IN emp.empno%TYPE
-) RETURN NUMBER
-AS
+) RETURN NUMBER AS
     v_sal emp.sal%TYPE;
 BEGIN
     SELECT sal
@@ -596,7 +593,7 @@ END;
 
 #### 使用优点
 
-- **方便处理整行数据**：使用 `%ROWTYPE` 可以简化对整行数据的操作，而不需要单独声明每一列的变量。
+- **方便处理整行数据**：使用 `%ROWTYPE` 可以简化对整行数据的操作，**而不需要单独声明每一列的变量**。
 - **类型一致性**：确保记录变量的各个字段与表或游标的列类型一致。
 - **提高代码可读性**：使代码更简洁易读，特别是在需要处理多列数据时。
 
@@ -639,6 +636,24 @@ END;
 ```
 
 在这个示例中，使用 `%ROWTYPE` 简化了游标循环中的数据处理，使代码更加简洁和易于维护。`emp_cursor%NOTFOUND` 属性在没有更多行可以提取时变为 `TRUE`，此时 `EXIT WHEN emp_cursor%NOTFOUND;` 语句将退出循环。
+
+```sql
+DECLARE
+	CURSOR emp_cursor IS
+		SELECT * FROM emp;
+	v_emp emp_cursor%ROWTYPE;
+BEGIN
+	OPEN emp_cursor;
+	LOOP
+		FETCH emp_cursor INTO v_emp;
+		
+		EXIT WHEN emp_cursor%NOTFOUND;
+		
+		DBMS_OUTPUT.PUT_LINE(v_emp.ename);
+	END LOOP;
+END;
+/
+```
 
 ### 游标的类型
 
