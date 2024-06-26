@@ -726,10 +726,9 @@ END;
 
 #### Record 类型的使用场景
 
-- **复杂数据结构**：在需要管理复杂的数据结构时，使用 Record 类型可以将相关数据封装在一起。
+- **复杂数据结构**：在需要管理复杂的数据结构时，使用 Record 类型可以将**相关数据封装在一起**。
 - **批量处理和游标循环**：在批量处理和游标循环中，使用 Record 类型可以简化数据处理。
 - **存储过程和函数**：在存储过程和函数中，可以使用 Record 类型作为参数或返回值，以便传递复杂的数据结构。
-  
 
 ### 游标详细用法
 
@@ -1147,8 +1146,8 @@ end;
 
 1. **`V$SESSION`**: 显示当前会话的信息，包括会话的状态、用户、机器名等。
 2. **`V$SQL`**: 显示当前在库中的SQL语句的信息。
-3. **`V$SYSTEM_EVENT`**: 显示系统范围内的等待事件的统计信息。
-4. **`V$DATAFILE`**: 显示有关数据库中文件的信息。
+3. **`V$SYSTEM_EVENT`**: 显示**系统范围内的等待事件的统计信息。**
+4. **`V$DATAFILE`**: 显示有关数据库中**文件的信息**。
 
 这些视图对于诊断问题、优化性能以及日常管理数据库都非常重要。通过这些视图，DBA可以获取关于数据库运行状态的详细信息，从而进行有效的管理和优化。
 
@@ -1200,6 +1199,46 @@ INSERT INTO employees VALUES (2, 'Jane Smith');
 ```
 
 这些行数据会存储在Oracle数据块中。Oracle会根据数据块的大小和当前块的使用情况，决定数据存储的位置。
+
+#### 查询
+
+1. **查询表空间和数据文件的信息**：
+   
+   ```sql
+   SELECT tablespace_name, file_name, bytes, blocks
+   FROM dba_data_files;
+   ```
+   
+2. **查询段的块分配信息**：
+   ```sql
+   SELECT segment_name, segment_type, tablespace_name, extent_id, file_id, block_id, blocks
+   FROM dba_extents
+   WHERE segment_name = 'EMP';
+   ```
+
+3. **查询特定表的块信息**：
+   ```sql
+   SELECT s.segment_name, e.file_id, e.block_id, e.blocks
+   FROM dba_segments s
+   JOIN dba_extents e ON s.segment_name = e.segment_name
+   WHERE s.segment_name = 'EMP';
+   ```
+
+4. **查询数据块的详细信息**：
+   ```sql
+   SELECT s.segment_name, s.segment_type, e.file_id, e.block_id, e.blocks
+   FROM dba_extents e
+   JOIN dba_segments s ON e.segment_name = s.segment_name
+   WHERE s.segment_name = 'EMP';
+   ```
+
+5. **使用 `DBMS_ROWID` 包**：
+   ```sql
+   SELECT rowid,
+          DBMS_ROWID.ROWID_RELATIVE_FNO(rowid) AS file_number,
+          DBMS_ROWID.ROWID_BLOCK_NUMBER(rowid) AS block_number
+   FROM emp;
+   ```
 
 ### 表空间 tablespace
 
@@ -1712,6 +1751,10 @@ SELECT * FROM emp WHERE ename = 'SMITH';
 - 块id 可通过 `DBA_EXTENTS` 视图查询。
 
 #### Rowid使用slot而不是offset的原因：
+
+在数据库管理系统中，特别是涉及数据块（data block）或页面（page）的系统中，Slot 是一个标识符，用于定位数据块中的记录。每个数据块包含一个槽位表（slot table），**该表记录了数据块内所有记录的指针**。每条记录对应一个唯一的slot编号（slot number），通过该编号可以在槽位表中找到记录的具体存储位置。Slot 的编号是固定的，即使数据块内部的记录发生移动，slot编号也不会改变。
+
+Offset 是指**记录在数据块中的具体存储位置**，通常表示为相对于数据块起始地址的字节数。它直接指向记录在数据块中的物理存储位置。Offset 随着记录在数据块中的位置变化而变化，因此在数据块重整（block reorganization）或记录移动时，offset 也会随之变化。
 
 - **数据块重整会导致记录实际存储位置变化，使用offset会增加索引维护复杂性**。
 - **使用slot保持稳定，即使发生块重整，slot编号也不会改变，从而避免频繁更新索引**
